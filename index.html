@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>OCR de Itens da Nota Fiscal</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h2 { margin-bottom: 10px; }
+    input[type="file"] { margin-bottom: 10px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 14px; }
+    th { background-color: #f2f2f2; }
+    #status { margin-top: 10px; font-weight: bold; }
+    button { margin-top: 10px; padding: 6px 12px; }
+  </style>
+</head>
+<body>
+
+<h2>📄 Conferência de Itens de Nota Fiscal (PDF/Imagem)</h2>
+
+<input type="file" id="fileInput" multiple accept=".pdf,image/png,image/jpeg,image/webp">
+<div id="status">Status: Aguardando arquivo...</div>
+<button onclick="exportCSV()">Exportar CSV</button>
+
+<table id="tabelaResultados">
+  <thead>
+    <tr>
+      <th>CÓD. PROD.</th>
+      <th>DESCRIÇÃO</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  const tabelaBody = document.querySelector("#tabelaResultados tbody");
+  const statusEl = document.getElementById("status");
+  let produtosExtraidos = [];
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  document.getElementById("fileInput").addEventListener("change", async (event) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    produtosExtraidos = [];
+    tabelaBody.innerHTML = "";
+
+    for (const file of files) {
+      if (file.type === "application/pdf") {
+        await processarPDF(file);
+      } else if (file.type.startsWith("image/")) {
+        await processarImagemDireta(file);
+      }
+    }
+
+    statusEl.textContent = "✅ OCR concluído!";
+  });
+
+  async function processarPDF(file) {
+    statusEl.textContent = `📄 Lendo PDF: ${file.name}`;
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+      statusEl.textContent = `🧠 OCR página ${i}/${pdf.numPages} do PDF ${file.name}...`;
+
+      const dataUrl = canvas.toDataURL("image/png");
+      await fazerOCR(dataUrl);
+    }
+  }
+
+  async function processarImagemDireta(file) {
+    statusEl.textContent = `🖼️ Lendo imagem: ${file.name}`;
+    const reader = new FileReader();
+
+    const dataUrl = await new Promise((resolve) => {
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+
+    await fazerOCR(dataUrl);
+  }
+
+  async function fazerOCR(dataUrl) {
+    const result = await Tesseract.recognize(dataUrl, "por", {
+      logger: m => console.log(m)
+    });
+    const texto = result.data.text;
+    processarTexto(texto);
+  }
+
+  function processarTexto(texto) {
+    const linhas = texto.split(/\n/);
+    for (let linha of linhas) {
+      const match = linha.match(/(\d{4,6})\s+([A-ZÀ-ÿ0-9\-\/\.,() ]{10,})/i);
+      if (match) {
+        const codigo = match[1].trim();
+        const descricao = match[2].trim();
+        if (!produtosExtraidos.find(p => p.codigo === codigo && p.descricao === descricao)) {
+          produtosExtraidos.push({ codigo, descricao });
+
+          const row = tabelaBody.insertRow();
+          row.insertCell().textContent = codigo;
+          row.insertCell().textContent = descricao;
+        }
+      }
+    }
+  }
+
+  function exportCSV() {
+    if (produtosExtraidos.length === 0) {
+      alert("Nenhum dado extraído.");
+      return;
+    }
+
+    let csv = "CÓD. PROD.,DESCRIÇÃO\n";
+    produtosExtraidos.forEach(p => {
+      csv += `${p.codigo},"${p.descricao}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "produtos-ocr.csv";
+    link.click();
+  }
+</script>
+</body>
+</html>
