@@ -2,51 +2,52 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>OCR de Itens da Nota Fiscal</title>
+    <title>Conferência de Itens de Nota Fiscal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2, h3 { color: #333; }
-        input[type="file"] { margin-bottom: 10px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px; table-layout: fixed; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 14px; word-wrap: break-word; }
-        th:nth-child(1), td:nth-child(1) { width: 15%; } /* Cód */
-        th:nth-child(2), td:nth-child(2) { width: 70%; } /* Descrição */
-        th:nth-child(3), td:nth-child(3) { width: 15%; } /* Quant. */
-        th { background-color: #f2f2f2; }
-        #status { margin-top: 15px; font-weight: bold; color: #555; }
-        .button-group { margin-top: 15px; display: flex; gap: 10px; }
-        button { padding: 10px 15px; border-radius: 5px; border: none; cursor: pointer; font-size: 14px; font-weight: bold; }
-        #extractButton { background-color: #007bff; color: white; }
-        #extractButton:disabled { background-color: #a0cfff; cursor: not-allowed; }
-        #clearButton { background-color: #ffc107; color: black; }
-        #exportButton { background-color: #28a745; color: white; }
-        #exportButton:disabled { background-color: #94dcb1; cursor: not-allowed; }
-        
-        #previewContainer { margin-top: 20px; padding: 10px; border: 2px dashed #ccc; border-radius: 5px; min-height: 100px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-        #previewContainer img, #previewContainer .pdf-icon { max-width: 100px; max-height: 100px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        .preview-placeholder { color: #888; }
-
-        #rawOutputContainer { margin-top: 20px; }
-        #rawOutput { background-color: #272822; color: #f8f8f2; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; max-height: 200px; overflow-y: auto; }
+        body{font-family:Arial,sans-serif;padding:20px;background-color:#f0f2f5;color:#333;line-height:1.6;}
+        .container{max-width:1200px;margin:30px auto;background:white;padding:30px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:1px solid #e0e0e0;}
+        h2{color:#1a202c;margin-bottom:20px;font-size:2em;text-align:center;}
+        p{margin-bottom:15px;font-size:1.1em;color:#555;}
+        input[type="file"]{margin-bottom:15px;padding:10px;border:1px solid #ccc;border-radius:5px;background-color:#fafafa;}
+        table{border-collapse:collapse;width:100%;margin-top:30px;table-layout:fixed;box-shadow:0 2px 10px rgba(0,0,0,0.05);border-radius:8px;overflow:hidden;}
+        th,td{border:1px solid #e2e8f0;padding:12px 15px;text-align:left;font-size:0.9em;word-wrap:break-word;}
+        th{background-color:#edf2f7;color:#2d3748;font-weight:600;text-transform:uppercase;}
+        tr:nth-child(even){background-color:#f7fafc;}
+        tr:hover{background-color:#ebf8ff;}
+        th:nth-child(1){width:12%;}
+        th:nth-child(2){width:73%;}
+        th:nth-child(3){width:15%;}
+        #status{margin-top:20px;padding:10px;background-color:#e6f7ff;border:1px solid #b3e0ff;color:#006bbd;border-radius:6px;font-weight:bold;font-size:1.1em;text-align:center;}
+        .button-group{margin-top:25px;display:flex;gap:15px;justify-content:center;}
+        button{padding:12px 25px;border-radius:8px;border:none;cursor:pointer;font-size:1em;font-weight:bold;transition:all .2s ease-in-out;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+        #extractButton{background-color:#007bff;color:white;}
+        #extractButton:hover:not(:disabled){background-color:#0056b3;transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.15);}
+        #extractButton:disabled{background-color:#a0cfff;cursor:not-allowed;opacity:.7;box-shadow:none;}
+        #clearButton{background-color:#ffc107;color:#333;}
+        #clearButton:hover{background-color:#e0a800;transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.15);}
+        #previewContainer{margin-top:20px;padding:15px;border:2px dashed #b0c4de;border-radius:10px;min-height:120px;display:flex;flex-wrap:wrap;gap:15px;align-items:center;justify-content:center;background-color:#fdfefe;}
+        #previewContainer .pdf-icon,#previewContainer .xml-icon{max-width:100px;max-height:100px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);object-fit:contain;border:1px solid #ddd;}
+        .preview-placeholder{color:#888;font-style:italic;font-size:1.1em;}
+        .pdf-icon,.xml-icon{display:flex;align-items:center;justify-content:center;font-size:4.5em;width:100px;height:100px;background-color:#f0f4f7;color:#4a69bd;}
+        .xml-icon{color:#228b22;}
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📄 Conferência de Itens de Nota Fiscal (PDF/Imagem)</h2>
-    <p>Selecione arquivos no botão abaixo ou simplesmente cole imagens na página (usando <strong>Ctrl + C</strong> e <strong>Ctrl + V</strong>).</p>
-    <input type="file" id="fileInput" multiple accept=".pdf,image/png,image/jpeg,image/webp">
-    <div id="previewContainer"><span class="preview-placeholder">Pré-visualização das imagens e PDFs...</span></div>
+    <h2>📄 Conferência de Itens de Nota Fiscal</h2>
+    <p>Selecione arquivos (**PDF** ou **XML**) no botão abaixo para processamento automático.</p>
+    <input type="file" id="fileInput" multiple accept=".pdf,.xml">
+    
+    <div id="previewContainer"><span class="preview-placeholder">Pré-visualização dos arquivos carregados...</span></div>
     <div class="button-group">
-        <button id="extractButton" disabled>🚀 Extrair Texto das Imagens</button>
+        <button id="extractButton">🚀 Extrair Dados</button>
         <button id="clearButton">🗑️ Limpar Tudo</button>
-        <button id="exportButton" onclick="exportCSV()" disabled>Exportar CSV</button>
     </div>
-    <div id="status">Status: Aguardando imagens...</div>
+    <div id="status">Status: Aguardando arquivos para processar.</div>
     
     <table id="tabelaResultados">
         <thead>
@@ -58,197 +59,211 @@
         </thead>
         <tbody></tbody>
     </table>
-
-    <div id="rawOutputContainer" style="display:none;">
-        <h3>Texto Bruto Extraído (para Diagnóstico)</h3>
-        <pre id="rawOutput"></pre>
-    </div>
 </div>
 
 <script>
-    // ... (O código anterior de manipulação de eventos e arquivos permanece o mesmo) ...
-    const fileInput = document.getElementById("fileInput");
-    const previewContainer = document.getElementById("previewContainer");
-    const previewPlaceholder = document.querySelector(".preview-placeholder");
-    const extractButton = document.getElementById("extractButton");
-    const clearButton = document.getElementById("clearButton");
-    const exportButton = document.getElementById("exportButton");
-    const tabelaBody = document.querySelector("#tabelaResultados tbody");
-    const statusEl = document.getElementById("status");
-    const rawOutputContainer = document.getElementById("rawOutputContainer");
-    const rawOutput = document.getElementById("rawOutput");
-
-    let arquivosParaProcessar = [];
-    let produtosExtraidos = [];
-
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-    window.addEventListener('paste', event => {
-        const items = event.clipboardData.items;
-        for (const item of items) {
-            if (item.kind === 'file' && item.type.startsWith('image/')) {
-                const file = item.getAsFile();
-                adicionarArquivoParaFila(file);
+    const fileInput=document.getElementById("fileInput"),previewContainer=document.getElementById("previewContainer"),previewPlaceholder=document.querySelector(".preview-placeholder"),extractButton=document.getElementById("extractButton"),clearButton=document.getElementById("clearButton"),tabelaBody=document.querySelector("#tabelaResultados tbody"),statusEl=document.getElementById("status");
+    let arquivosParaProcessar=[],produtosExtraidos=[];
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    function limparResultados(){produtosExtraidos=[];tabelaBody.innerHTML="";}
+    function atualizarEstadoBotoes(){extractButton.disabled=arquivosParaProcessar.length===0;}
+    function processarDadosXML(xmlDoc){
+        const produtosXML=xmlDoc.querySelectorAll('det prod');
+        if(produtosXML.length===0){
+            const produtosAlternativos=xmlDoc.querySelectorAll('produto, item');
+            if(produtosAlternativos.length>0){
+                produtosAlternativos.forEach(prod=>{
+                    const codigo=prod.querySelector('cProd')?.textContent||prod.querySelector('codigo')?.textContent||'N/A';
+                    const descricao=prod.querySelector('xProd')?.textContent||prod.querySelector('descricao')?.textContent||'N/A';
+                    const quantidade=prod.querySelector('qCom')?.textContent||prod.querySelector('qComercial')?.textContent||prod.querySelector('quantidade')?.textContent||'N/A';
+                    if(codigo!=='N/A'&&!produtosExtraidos.find(p=>p.codigo===codigo)){
+                        produtosExtraidos.push({codigo,descricao,quantidade});
+                        const row=tabelaBody.insertRow();
+                        row.insertCell().textContent=codigo;
+                        row.insertCell().textContent=descricao;
+                        row.insertCell().textContent=quantidade;
+                    }
+                });
+                return;
+            }else{
+                statusEl.textContent+=" (Nenhum produto detectado no XML)";
+                return;
             }
         }
-    });
-    fileInput.addEventListener("change", event => {
-        for (const file of event.target.files) { adicionarArquivoParaFila(file); }
-        fileInput.value = ""; 
-    });
-    extractButton.addEventListener('click', iniciarProcessamento);
-    clearButton.addEventListener('click', limparTudo);
-
-    function adicionarArquivoParaFila(file) {
-        if (!file) return;
-        arquivosParaProcessar.push(file);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            let previewElement;
-            if (file.type.startsWith('image/')) {
-                previewElement = document.createElement('img');
-                previewElement.src = e.target.result;
-            } else if (file.type === 'application/pdf') {
-                previewElement = document.createElement('div');
-                previewElement.textContent = '📄';
-                previewElement.title = file.name;
-                previewElement.className = 'pdf-icon';
-                previewElement.style.fontSize = '5em';
+        produtosXML.forEach(prod=>{
+            const codigo=prod.querySelector('cProd')?.textContent||'N/A';
+            const descricao=prod.querySelector('xProd')?.textContent||'N/A';
+            const quantidade=prod.querySelector('qCom')?.textContent||'N/A';
+            if(codigo!=='N/A'&&!produtosExtraidos.find(p=>p.codigo===codigo)){
+                produtosExtraidos.push({codigo,descricao,quantidade});
+                const row=tabelaBody.insertRow();
+                row.insertCell().textContent=codigo;
+                row.insertCell().textContent=descricao;
+                row.insertCell().textContent=quantidade;
             }
-            if (previewElement) { previewContainer.appendChild(previewElement); }
-        };
-        reader.readAsDataURL(file);
-        if (previewPlaceholder) { previewPlaceholder.style.display = 'none'; }
-        atualizarEstadoBotoes();
-    }
-
-    async function iniciarProcessamento() {
-        if (arquivosParaProcessar.length === 0) return;
-        limparResultados();
-        extractButton.disabled = true;
-        statusEl.textContent = "Iniciando processamento...";
-        rawOutputContainer.style.display = 'block';
-        rawOutput.textContent = '';
-        for (let i = 0; i < arquivosParaProcessar.length; i++) {
-            const file = arquivosParaProcessar[i];
-            const statusMsg = `(${i + 1}/${arquivosParaProcessar.length}) Processando: ${file.name}`;
-            console.log(statusMsg);
-            if (file.type === "application/pdf") { await processarPDF(file, i + 1); } 
-            else if (file.type.startsWith("image/")) { await processarImagemDireta(file, i + 1); }
-        }
-        statusEl.textContent = `✅ OCR concluído! ${produtosExtraidos.length} produtos encontrados.`;
-        atualizarEstadoBotoes();
-    }
-    
-    function limparTudo() {
-        arquivosParaProcessar = [];
-        limparResultados();
-        previewContainer.innerHTML = '';
-        if (previewPlaceholder) {
-            previewContainer.appendChild(previewPlaceholder);
-            previewPlaceholder.style.display = 'block';
-        }
-        statusEl.textContent = "Status: Aguardando imagens...";
-        rawOutputContainer.style.display = 'none';
-        rawOutput.textContent = '';
-        atualizarEstadoBotoes();
-    }
-    
-    function limparResultados() {
-        produtosExtraidos = [];
-        tabelaBody.innerHTML = "";
-    }
-    
-    function atualizarEstadoBotoes() {
-        extractButton.disabled = arquivosParaProcessar.length === 0;
-        exportButton.disabled = produtosExtraidos.length === 0;
-    }
-
-    async function processarPDF(file, fileIndex) {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        for (let i = 1; i <= pdf.numPages; i++) {
-            statusEl.textContent = `(${fileIndex}/${arquivosParaProcessar.length}) 📄 Lendo página ${i}/${pdf.numPages}...`;
-            const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 2.5 });
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            await page.render({ canvasContext: context, viewport: viewport }).promise;
-            await fazerOCR(canvas.toDataURL("image/png"));
-        }
-    }
-
-    async function processarImagemDireta(file, fileIndex) {
-        statusEl.textContent = `(${fileIndex}/${arquivosParaProcessar.length}) 🖼️ Lendo imagem: ${file.name}...`;
-        const dataUrl = await new Promise(resolve => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(file);
         });
-        await fazerOCR(dataUrl);
     }
-
-    async function fazerOCR(dataUrl) {
-        statusEl.textContent = `${statusEl.textContent.split('...')[0]}... 🧠 Executando OCR...`;
-        const result = await Tesseract.recognize(dataUrl, "por", {
-            logger: m => console.log(m)
-        });
-        // ATUALIZAÇÃO: Mostra o texto bruto na tela
-        rawOutput.textContent += result.data.text + '\n\n--- Fim da Imagem ---\n\n';
-        processarTexto(result.data.text);
-    }
-
-    function processarTexto(texto) {
-        const linhas = texto.split('\n');
-        for (const linha of linhas) {
-            // ETAPA 1: Regex flexível para capturar o mínimo necessário
-            // Captura [1]código no início, [2]miolo, [3]quantidade no fim.
-            const match = linha.match(/^(\d{5,})\s+(.*)\s+([\d,.]+)$/);
-
-            if (match) {
-                // ETAPA 2: Limpar o "miolo" capturado
-                const codigo = match[1].trim();
-                let descricaoBruta = match[2].trim();
-                const quantidade = match[3].trim();
-                
-                // Remove as colunas indesejadas (NCM, CST, etc.) da descrição
-                // procurando pelo padrão de um código NCM de 8 dígitos.
-                const ncmMatch = descricaoBruta.match(/\s\d{8}(\s|$)/);
-                const descricaoLimpa = ncmMatch 
-                    ? descricaoBruta.substring(0, ncmMatch.index).trim() 
-                    : descricaoBruta;
-
-                if (!produtosExtraidos.find(p => p.codigo === codigo)) {
-                    produtosExtraidos.push({ codigo, descricao: descricaoLimpa, quantidade });
-
-                    const row = tabelaBody.insertRow();
-                    row.insertCell().textContent = codigo;
-                    row.insertCell().textContent = descricaoLimpa;
-                    row.insertCell().textContent = quantidade;
+    function processarTextoGenerico(texto){
+        const linhas=texto.split('\n');
+        let currentProduct=null,lastMatchLine=-1;
+        const startProductRegex=/^\s*(\d{5,})\s+([A-Z0-9\s.,\/%()-]+?)(?=\s+\d{7,}|\s+UN|\s+$)/;
+        const quantityLineRegex=/(?:UNID\.?|UN)\s*([\d,.]+)/i;
+        const fullMatchRegex=/^(\d{5,})\s+(.+?)\s+(?:\d{7,10}\s+)?(?:\d+\s+){0,3}?UN(?:ID\.?)?\s*([\d,.]+)/i;
+        for(let i=0;i<linhas.length;i++){
+            const linha=linhas[i].trim();
+            const fullMatch=linha.match(fullMatchRegex);
+            if(fullMatch){
+                if(currentProduct){adicionarProdutoNaTabela(currentProduct);}
+                currentProduct={codigo:fullMatch[1].trim(),descricao:fullMatch[2].trim(),quantidade:fullMatch[3].trim().replace(/\./g,'').replace(/,/g,'.')};
+                adicionarProdutoNaTabela(currentProduct);
+                currentProduct=null;
+                lastMatchLine=i;
+            }else{
+                const startMatch=linha.match(startProductRegex);
+                if(startMatch&&(i>lastMatchLine+1||lastMatchLine===-1)){
+                    if(currentProduct){adicionarProdutoNaTabela(currentProduct);}
+                    currentProduct={codigo:startMatch[1].trim(),descricao:startMatch[2].trim(),quantidade:'N/A'};
+                }else if(currentProduct){
+                    const quantityMatch=linha.match(quantityLineRegex);
+                    if(quantityMatch){
+                        currentProduct.quantidade=quantityMatch[1].trim().replace(/\./g,'').replace(/,/g,'.');
+                        let descPart=linha.substring(0,quantityMatch.index).trim();
+                        if(descPart){currentProduct.descricao+=(currentProduct.descricao?' ':'')+descPart;}
+                        adicionarProdutoNaTabela(currentProduct);
+                        currentProduct=null;
+                        lastMatchLine=i;
+                    }else{
+                        currentProduct.descricao+=(currentProduct.descricao?' ':'')+linha;
+                    }
                 }
             }
         }
+        if(currentProduct){adicionarProdutoNaTabela(currentProduct);}
     }
-
-    function exportCSV() {
-        if (produtosExtraidos.length === 0) {
-            alert("Nenhum dado extraído para exportar.");
+    function adicionarProdutoNaTabela(product){
+        if(product.codigo!=='N/A'&&!produtosExtraidos.find(p=>p.codigo===product.codigo)){
+            let finalDescription=product.descricao.replace(/\b\d{7,10}\b/g,'').replace(/\b(UNID\.?|UN)\b/gi,'').replace(/\s+/g,' ').trim();
+            produtosExtraidos.push({codigo:product.codigo,descricao:finalDescription,quantidade:product.quantidade});
+            const row=tabelaBody.insertRow();
+            row.insertCell().textContent=product.codigo;
+            row.insertCell().textContent=finalDescription;
+            row.insertCell().textContent=product.quantidade;
+        }
+    }
+    async function processarPDF(file,fileIndex){
+        statusEl.textContent=`(${fileIndex}/${arquivosParaProcessar.length}) 📄 Lendo PDF: ${file.name}...`;
+        const arrayBuffer=await file.arrayBuffer();
+        const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+        for(let i=1;i<=pdf.numPages;i++){
+            statusEl.textContent=`(${fileIndex}/${arquivosParaProcessar.length}) 📄 Processando página ${i}/${pdf.numPages}...`;
+            const page=await pdf.getPage(i);
+            const viewport=page.getViewport({scale:4});
+            const canvas=document.createElement("canvas");
+            const context=canvas.getContext("2d");
+            canvas.width=viewport.width;
+            canvas.height=viewport.height;
+            await page.render({canvasContext:context,viewport:viewport}).promise;
+            await fazerOCR(canvas.toDataURL("image/png"));
+        }
+    }
+    async function fazerOCR(dataUrl){
+        statusEl.textContent=`${statusEl.textContent.split('...')[0]}... 🧠 Executando OCR...`;
+        const result=await Tesseract.recognize(dataUrl,"por",{logger:m=>console.log(m)});
+        processarTextoGenerico(result.data.text);
+    }
+    async function processarXML(file,fileIndex){
+        statusEl.textContent=`(${fileIndex}/${arquivosParaProcessar.length}) 📊 Lendo XML: ${file.name}...`;
+        return new Promise((resolve,reject)=>{
+            const reader=new FileReader();
+            reader.onload=e=>{
+                const xmlString=e.target.result;
+                try{
+                    const parser=new DOMParser();
+                    const xmlDoc=parser.parseFromString(xmlString,"text/xml");
+                    processarDadosXML(xmlDoc);
+                    resolve();
+                }catch(error){
+                    console.error("Erro ao parsear XML:",error);
+                    statusEl.textContent=`Erro ao processar XML: ${file.name}. Verifique o console.`;
+                    reject(error);
+                }
+            };
+            reader.onerror=reject;
+            reader.readAsText(file);
+        });
+    }
+    function adicionarArquivoParaFila(file){
+        if(!file)return;
+        if(file.type!=='application/pdf'&&file.type!=='text/xml'&&!file.name.toLowerCase().endsWith('.xml')){
+            alert('Por favor, selecione apenas arquivos PDF ou XML.');
             return;
         }
-        let csv = "CÓD. PROD.,DESCRIÇÃO,QUANTIDADE\n";
-        produtosExtraidos.forEach(p => {
-            const escapedDescricao = p.descricao.includes(',') ? `"${p.descricao}"` : p.descricao;
-            csv += `${p.codigo},${escapedDescricao},${p.quantidade}\n`;
-        });
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "produtos-extraidos-ocr.csv";
-        link.click();
-        URL.revokeObjectURL(link.href);
+        arquivosParaProcessar.push(file);
+        const reader=new FileReader();
+        reader.onload=e=>{
+            let previewElement;
+            if(file.type==='application/pdf'){
+                previewElement=document.createElement('div');
+                previewElement.textContent='📄';
+                previewElement.title=file.name;
+                previewElement.className='pdf-icon';
+            }else if(file.type==='text/xml'||file.name.toLowerCase().endsWith('.xml')){
+                previewElement=document.createElement('div');
+                previewElement.textContent='📊';
+                previewElement.title=file.name;
+                previewElement.className='xml-icon';
+            }
+            if(previewElement){previewContainer.appendChild(previewElement);}
+        };
+        if(file.type==='text/xml'||file.name.toLowerCase().endsWith('.xml')){
+            reader.readAsText(file);
+        }else{
+            reader.readAsDataURL(file);
+        }
+        if(previewPlaceholder){previewPlaceholder.style.display='none';}
+        atualizarEstadoBotoes();
     }
+    async function iniciarProcessamento(){
+        limparResultados();
+        extractButton.disabled=true;
+        statusEl.textContent="Iniciando processamento...";
+        if(arquivosParaProcessar.length===0){
+            statusEl.textContent="Nenhum arquivo para processar. Por favor, carregue um arquivo PDF ou XML.";
+            atualizarEstadoBotoes();
+            return;
+        }
+        for(let i=0;i<arquivosParaProcessar.length;i++){
+            const file=arquivosParaProcessar[i];
+            const statusMsg=`(${i+1}/${arquivosParaProcessar.length}) Processando: ${file.name}`;
+            console.log(statusMsg);
+            if(file.type==="application/pdf"){
+                await processarPDF(file,i+1);
+            }else if(file.type==="text/xml"||file.name.toLowerCase().endsWith('.xml')){
+                await processarXML(file,i+1);
+            }else{
+                statusEl.textContent=`Tipo de arquivo não suportado: ${file.name}`;
+                console.warn(`Tipo de arquivo não suportado: ${file.type}`);
+            }
+        }
+        statusEl.textContent=`✅ Processamento de arquivos concluído! Total de ${produtosExtraidos.length} produtos encontrados.`;
+        atualizarEstadoBotoes();
+    }
+    function limparTudo(){
+        arquivosParaProcessar=[];
+        limparResultados();
+        previewContainer.innerHTML='';
+        if(previewPlaceholder){
+            previewContainer.appendChild(previewPlaceholder);
+            previewPlaceholder.style.display='block';
+        }
+        fileInput.value="";
+        statusEl.textContent="Status: Aguardando arquivos para processar.";
+        atualizarEstadoBotoes();
+    }
+    fileInput.addEventListener("change",event=>{for(const file of event.target.files){adicionarArquivoParaFila(file);}});
+    extractButton.addEventListener('click',iniciarProcessamento);
+    clearButton.addEventListener('click',limparTudo);
+    atualizarEstadoBotoes();
 </script>
 
 </body>
