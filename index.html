@@ -10,10 +10,11 @@
         body{font-family:Arial,sans-serif;padding:20px;background-color:#f0f2f5;color:#333;line-height:1.6;}
         .container{max-width:1200px;margin:30px auto;background:white;padding:30px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:1px solid #e0e0e0;}
         h2{color:#1a202c;margin-bottom:20px;font-size:2em;text-align:center;}
+        h3{color:#333;margin-top:30px;border-bottom:2px solid #e2e8f0;padding-bottom:10px;}
         p{margin-bottom:15px;font-size:1.1em;color:#555;}
-        input[type="file"]{margin-bottom:15px;padding:10px;border:1px solid #ccc;border-radius:5px;background-color:#fafafa;}
-        table{border-collapse:collapse;width:100%;margin-top:30px;table-layout:fixed;box-shadow:0 2px 10px rgba(0,0,0,0.05);border-radius:8px;overflow:hidden;}
-        th,td{border:1px solid #e2e8f0;padding:12px 15px;text-align:left;font-size:0.9em;word-wrap:break-word;}
+        input[type="file"], input[type="text"]{margin-bottom:15px;padding:10px;border:1px solid #ccc;border-radius:5px;background-color:#fafafa;font-size:1em;transition: border-color 0.3s ease;}
+        table{border-collapse:collapse;width:100%;margin-top:20px;table-layout:fixed;box-shadow:0 2px 10px rgba(0,0,0,0.05);border-radius:8px;overflow:hidden;}
+        th,td{border:1px solid #e2e8f0;padding:12px 15px;text-align:left;font-size:0.9em;word-wrap:break-word;transition: background-color 0.5s ease;}
         th{background-color:#edf2f7;color:#2d3748;font-weight:600;text-transform:uppercase;}
         tr:nth-child(even){background-color:#f7fafc;}
         tr:hover{background-color:#ebf8ff;}
@@ -33,6 +34,22 @@
         .preview-placeholder{color:#888;font-style:italic;font-size:1.1em;}
         .pdf-icon,.xml-icon{display:flex;align-items:center;justify-content:center;font-size:4.5em;width:100px;height:100px;background-color:#f0f4f7;color:#4a69bd;}
         .xml-icon{color:#228b22;}
+        #scan-area { margin-top: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        #scanInput { width: calc(100% - 24px); }
+
+        /* --- NOVAS CLASSES PARA FEEDBACK VISUAL --- */
+        .highlight-success {
+            background-color: #d4edda !important; /* Verde claro */
+        }
+        .row-removing {
+            background-color: #f8d7da !important; /* Vermelho claro */
+            opacity: 0;
+            transform: translateX(50px);
+            transition: all 0.5s ease-out;
+        }
+        .input-success { outline-color: #28a745 !important; }
+        .input-error { outline-color: #dc3545 !important; }
+
     </style>
 </head>
 <body>
@@ -48,6 +65,12 @@
         <button id="clearButton">🗑️ Limpar Tudo</button>
     </div>
     <div id="status">Status: Aguardando arquivos para processar.</div>
+
+    <div id="scan-area">
+        <h3>Bipar / Digitar Código para Baixa</h3>
+        <p>Digite o código do produto e pressione <strong>Enter</strong> para dar baixa em uma unidade.</p>
+        <input type="text" id="scanInput" placeholder="Aguardando código do produto...">
+    </div>
     
     <table id="tabelaResultados">
         <thead>
@@ -62,72 +85,120 @@
 </div>
 
 <script>
-    const fileInput=document.getElementById("fileInput"),previewContainer=document.getElementById("previewContainer"),previewPlaceholder=document.querySelector(".preview-placeholder"),extractButton=document.getElementById("extractButton"),clearButton=document.getElementById("clearButton"),tabelaBody=document.querySelector("#tabelaResultados tbody"),statusEl=document.getElementById("status");
+    const fileInput=document.getElementById("fileInput"),previewContainer=document.getElementById("previewContainer"),previewPlaceholder=document.querySelector(".preview-placeholder"),extractButton=document.getElementById("extractButton"),clearButton=document.getElementById("clearButton"),tabelaBody=document.querySelector("#tabelaResultados tbody"),statusEl=document.getElementById("status"),scanInput=document.getElementById("scanInput");
     let arquivosParaProcessar=[];
     pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     
-    // --- FUNÇÕES DE PROCESSAMENTO DE DADOS ---
+    // --- LÓGICA DE BAIXA DE PRODUTO ---
+    scanInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault(); 
+            processarBaixaDeItem();
+        }
+    });
 
-    function processarDadosXML(xmlDoc) {
-        const produtosAgregados = {}; // Objeto para agrupar produtos pelo código
+    function flashInput(inputElement, className) {
+        inputElement.classList.add(className);
+        setTimeout(() => {
+            inputElement.classList.remove(className);
+        }, 1000); // Remove a classe após 1 segundo
+    }
 
-        const produtosXML = xmlDoc.querySelectorAll('det > prod');
-        if (produtosXML.length === 0) {
-            statusEl.textContent += " (Nenhum produto encontrado na estrutura <det><prod> do XML)";
-            return;
+    function processarBaixaDeItem() {
+        const rawCode = scanInput.value.trim();
+        if (rawCode === '') return;
+
+        let searchCode;
+        if (rawCode.length > 5) {
+            searchCode = rawCode.substring(rawCode.length - 6, rawCode.length - 1);
+        } else {
+            searchCode = rawCode;
         }
 
-        // Etapa 1: Agrega os produtos e soma as quantidades
+        const rows = tabelaBody.getElementsByTagName('tr');
+        let produtoEncontrado = false;
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const codeCell = row.cells[0];
+            
+            if (codeCell.textContent === searchCode) {
+                produtoEncontrado = true;
+                const quantityCell = row.cells[2];
+                let currentQuantity = parseFloat(quantityCell.textContent.replace(',', '.'));
+                
+                currentQuantity -= 1; 
+
+                // APLICA O FEEDBACK VISUAL DE SUCESSO
+                flashInput(scanInput, 'input-success');
+                row.classList.add('highlight-success');
+                setTimeout(() => {
+                    row.classList.remove('highlight-success');
+                }, 1000);
+
+                if (currentQuantity <= 0) {
+                    row.classList.add('row-removing');
+                    setTimeout(() => row.remove(), 500);
+                } else {
+                    quantityCell.textContent = currentQuantity;
+                }
+                break; 
+            }
+        }
+
+        if (!produtoEncontrado) {
+            flashInput(scanInput, 'input-error'); // Feedback de erro no input
+            alert(`Produto com código derivado "${searchCode}" não foi encontrado na lista.`);
+        }
+
+        scanInput.value = ''; 
+        scanInput.focus(); // Mantém o foco no campo para a próxima leitura
+    }
+
+
+    // --- FUNÇÕES DE PROCESSAMENTO DE DADOS (XML/PDF) ---
+    function processarDadosXML(xmlDoc) {
+        const produtosAgregados = {};
+        const produtosXML = xmlDoc.querySelectorAll('det > prod');
+        if (produtosXML.length === 0) {
+            statusEl.textContent += " (Nenhum produto encontrado na estrutura <det><prod> no XML)";
+            return;
+        }
         produtosXML.forEach(prod => {
             const codigo = prod.querySelector('cProd')?.textContent;
-            if (!codigo) return; // Pula o item se não tiver código
-
+            if (!codigo) return; 
             const descricao = prod.querySelector('xProd')?.textContent || 'N/A';
             const quantidade = parseFloat(prod.querySelector('qCom')?.textContent || 0);
-
             if (produtosAgregados[codigo]) {
-                // Se o produto já existe no nosso objeto, apenas soma a nova quantidade
                 produtosAgregados[codigo].quantidade += quantidade;
             } else {
-                // Se for um produto novo, adiciona ao objeto
-                produtosAgregados[codigo] = {
-                    descricao: descricao,
-                    quantidade: quantidade
-                };
+                produtosAgregados[codigo] = { descricao: descricao, quantidade: quantidade };
             }
         });
-
-        // Etapa 2: Preenche a tabela com os dados já agregados
         for (const codigo in produtosAgregados) {
             const produto = produtosAgregados[codigo];
             const row = tabelaBody.insertRow();
             row.insertCell().textContent = codigo;
             row.insertCell().textContent = produto.descricao;
-            row.insertCell().textContent = produto.quantidade.toFixed(4).replace(/\.?0+$/, ""); // Formata para exibir e remove zeros desnecessários
+            row.insertCell().textContent = produto.quantidade.toFixed(4).replace(/\.?0+$/, "");
         }
     }
 
     async function processarPDF(file, fileIndex) {
-        // Esta função usa OCR para extrair texto de PDFs de imagem.
         statusEl.textContent = `(${fileIndex}/${arquivosParaProcessar.length}) 📄 Lendo PDF: ${file.name}...`;
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        
         for (let i = 1; i <= pdf.numPages; i++) {
             statusEl.textContent = `(${fileIndex}/${arquivosParaProcessar.length}) 📄 Processando OCR na página ${i}/${pdf.numPages}...`;
             const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 3.0 }); // Aumentar a escala para melhor precisão
+            const viewport = page.getViewport({ scale: 3.0 });
             const canvas = document.createElement("canvas");
             const context = canvas.getContext("2d");
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             await page.render({ canvasContext: context, viewport: viewport }).promise;
-            
             const dataUrl = canvas.toDataURL("image/png");
             const result = await Tesseract.recognize(dataUrl, "por", { logger: m => console.log(m) });
-            
-            // Aqui você precisaria de uma função para interpretar o texto do OCR e popular a tabela,
-            // similar à `processarTextoGenerico` de versões anteriores.
             console.log(`Texto extraído da página ${i}:`, result.data.text);
         }
     }
@@ -161,6 +232,8 @@
     function atualizarEstadoBotoes() {
         extractButton.disabled = arquivosParaProcessar.length === 0;
     }
+
+
 
     function adicionarArquivoParaFila(file) {
         if (!file) return;
