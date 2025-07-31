@@ -50,13 +50,23 @@
         .input-success { outline-color: #28a745 !important; }
         .input-error { outline-color: #dc3545 !important; }
 
+        /* --- NOVO ESTILO PARA FEEDBACK DE ERRO NO INPUT --- */
+        #scanFeedback {
+            font-size: 0.9em;
+            font-weight: bold;
+            height: 1.1em; /* Reserva espaço para evitar que o layout mude */
+            margin-top: -10px;
+            margin-bottom: 10px;
+            color: #dc3545; /* Vermelho */
+        }
+
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>📄 Conferência de Itens de Nota Fiscal</h2>
-    <p>Selecione arquivos (**PDF** ou **XML**) no botão abaixo para processamento automático.</p>
+    <p>Selecione arquivos (**XML**) no botão abaixo para processamento automático.</p>
     <input type="file" id="fileInput" multiple accept=".pdf,.xml">
     
     <div id="previewContainer"><span class="preview-placeholder">Pré-visualização dos arquivos carregados...</span></div>
@@ -70,7 +80,7 @@
         <h3>Bipar / Digitar Código para Baixa</h3>
         <p>Digite o código do produto e pressione <strong>Enter</strong> para dar baixa em uma unidade.</p>
         <input type="text" id="scanInput" placeholder="Aguardando código do produto...">
-    </div>
+        <p id="scanFeedback"></p> </div>
     
     <table id="tabelaResultados">
         <thead>
@@ -85,11 +95,17 @@
 </div>
 
 <script>
-    const fileInput=document.getElementById("fileInput"),previewContainer=document.getElementById("previewContainer"),previewPlaceholder=document.querySelector(".preview-placeholder"),extractButton=document.getElementById("extractButton"),clearButton=document.getElementById("clearButton"),tabelaBody=document.querySelector("#tabelaResultados tbody"),statusEl=document.getElementById("status"),scanInput=document.getElementById("scanInput");
+    const fileInput=document.getElementById("fileInput"),previewContainer=document.getElementById("previewContainer"),previewPlaceholder=document.querySelector(".preview-placeholder"),extractButton=document.getElementById("extractButton"),clearButton=document.getElementById("clearButton"),tabelaBody=document.querySelector("#tabelaResultados tbody"),statusEl=document.getElementById("status"),scanInput=document.getElementById("scanInput"),scanFeedback=document.getElementById("scanFeedback"); // Referência ao novo elemento
     let arquivosParaProcessar=[];
     pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     
-    // --- LÓGICA DE BAIXA DE PRODUTO ---
+    function playAudio(soundName) {
+        const audio = new Audio(`public/sounds/${soundName}.mp3`);
+        audio.play().catch(error => {
+            console.error(`Não foi possível tocar o áudio '${soundName}':`, error);
+        });
+    }
+
     scanInput.addEventListener('keydown', function(event) {
         if (event.key === 'Enter') {
             event.preventDefault(); 
@@ -101,10 +117,11 @@
         inputElement.classList.add(className);
         setTimeout(() => {
             inputElement.classList.remove(className);
-        }, 1000); // Remove a classe após 1 segundo
+        }, 1000);
     }
 
     function processarBaixaDeItem() {
+        scanFeedback.textContent = ''; // Limpa a mensagem anterior a cada nova leitura
         const rawCode = scanInput.value.trim();
         if (rawCode === '') return;
 
@@ -124,12 +141,12 @@
             
             if (codeCell.textContent === searchCode) {
                 produtoEncontrado = true;
+                playAudio('success');
                 const quantityCell = row.cells[2];
                 let currentQuantity = parseFloat(quantityCell.textContent.replace(',', '.'));
                 
                 currentQuantity -= 1; 
 
-                // APLICA O FEEDBACK VISUAL DE SUCESSO
                 flashInput(scanInput, 'input-success');
                 row.classList.add('highlight-success');
                 setTimeout(() => {
@@ -147,12 +164,15 @@
         }
 
         if (!produtoEncontrado) {
-            flashInput(scanInput, 'input-error'); // Feedback de erro no input
-            alert(`Produto com código derivado "${searchCode}" não foi encontrado na lista.`);
+            playAudio('error');
+            flashInput(scanInput, 'input-error');
+            // A LINHA DO ALERT FOI REMOVIDA DAQUI
+            // E A LÓGICA ABAIXO FOI ADICIONADA
+            scanFeedback.textContent = `Código "${searchCode}" não pertence a esta nota.`;
         }
 
         scanInput.value = ''; 
-        scanInput.focus(); // Mantém o foco no campo para a próxima leitura
+        scanInput.focus();
     }
 
 
@@ -233,8 +253,6 @@
         extractButton.disabled = arquivosParaProcessar.length === 0;
     }
 
-
-
     function adicionarArquivoParaFila(file) {
         if (!file) return;
         const tiposAceitos = ['application/pdf', 'text/xml'];
@@ -287,6 +305,7 @@
         }
         fileInput.value = "";
         statusEl.textContent = "Status: Aguardando arquivos para processar.";
+        scanFeedback.textContent = "";
         atualizarEstadoBotoes();
     }
 
