@@ -27,6 +27,11 @@
         th:nth-child(1){width:12%;}
         th:nth-child(2){width:73%;}
         th:nth-child(3){width:15%;}
+        #linkRetaguardaGB img{
+            width: 10rem;
+            height: auto;
+            border-radius: 8px;
+        }
         #status{margin-top:20px;padding:10px;background-color:#e6f7ff;border:1px solid #b3e0ff;color:#006bbd;border-radius:6px;font-weight:bold;font-size:1.1em;text-align:center;}
         .button-group{margin-top:25px;display:flex;gap:15px;justify-content:center;}
         button{padding:12px 25px;border-radius:8px;border:none;cursor:pointer;font-size:1em;font-weight:bold;transition:all .2s ease-in-out;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
@@ -68,6 +73,9 @@
 
 <div class="container">
     <h2>📄 Conferência de Itens de Nota Fiscal</h2>
+    <a id="linkRetaguardaGB" href="https://cp10621.retaguarda.grupoboticario.com.br/app/#/login" target="_blank" rel="noopener noreferrer">
+        <img src="./public/image/LogoRetaguardaGB.PNG" alt="Logo Retaguarda GB">
+    </a>
     <p>Selecione arquivos (<strong>XML</strong>) no botão abaixo para processamento automático.</p>
     <input type="file" id="fileInput" multiple accept=".xml,text/xml">
     
