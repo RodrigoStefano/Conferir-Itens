@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Conferência de Itens de Nota Fiscal</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         body{font-family:Arial,sans-serif;padding:20px;background-color:#f0f2f5;color:#333;line-height:1.6;}
         .container{max-width:1200px;margin:30px auto;background:white;padding:30px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:1px solid #e0e0e0;}
@@ -30,19 +27,18 @@
         #clearButton{background-color:#ffc107;color:#333;}
         #clearButton:hover{background-color:#e0a800;transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.15);}
         #previewContainer{margin-top:20px;padding:15px;border:2px dashed #b0c4de;border-radius:10px;min-height:120px;display:flex;flex-wrap:wrap;gap:15px;align-items:center;justify-content:center;background-color:#fdfefe;}
-        #previewContainer .pdf-icon,#previewContainer .xml-icon{max-width:100px;max-height:100px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);object-fit:contain;border:1px solid #ddd;}
+        #previewContainer .xml-icon{max-width:100px;max-height:100px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);object-fit:contain;border:1px solid #ddd;}
         .preview-placeholder{color:#888;font-style:italic;font-size:1.1em;}
-        .pdf-icon,.xml-icon{display:flex;align-items:center;justify-content:center;font-size:4.5em;width:100px;height:100px;background-color:#f0f4f7;color:#4a69bd;}
-        .xml-icon{color:#228b22;}
+        .xml-icon{display:flex;align-items:center;justify-content:center;font-size:4.5em;width:100px;height:100px;background-color:#f0f4f7;color:#228b22;}
         #scan-area { margin-top: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
         #scanInput { width: calc(100% - 24px); }
 
-        /* --- NOVAS CLASSES PARA FEEDBACK VISUAL --- */
+        /* --- CLASSES PARA FEEDBACK VISUAL --- */
         .highlight-success {
-            background-color: #d4edda !important; /* Verde claro */
+            background-color: #d4edda !important;
         }
         .row-removing {
-            background-color: #f8d7da !important; /* Vermelho claro */
+            background-color: #f8d7da !important;
             opacity: 0;
             transform: translateX(50px);
             transition: all 0.5s ease-out;
@@ -50,14 +46,14 @@
         .input-success { outline-color: #28a745 !important; }
         .input-error { outline-color: #dc3545 !important; }
 
-        /* --- NOVO ESTILO PARA FEEDBACK DE ERRO NO INPUT --- */
+        /* --- ESTILO PARA FEEDBACK DE ERRO NO INPUT --- */
         #scanFeedback {
             font-size: 0.9em;
             font-weight: bold;
-            height: 1.1em; /* Reserva espaço para evitar que o layout mude */
+            height: 1.1em;
             margin-top: -10px;
             margin-bottom: 10px;
-            color: #dc3545; /* Vermelho */
+            color: #dc3545;
         }
 
     </style>
@@ -66,8 +62,8 @@
 
 <div class="container">
     <h2>📄 Conferência de Itens de Nota Fiscal</h2>
-    <p>Selecione arquivos (**XML**) no botão abaixo para processamento automático.</p>
-    <input type="file" id="fileInput" multiple accept=".pdf,.xml">
+    <p>Selecione arquivos (<strong>XML</strong>) no botão abaixo para processamento automático.</p>
+    <input type="file" id="fileInput" multiple accept=".xml,text/xml">
     
     <div id="previewContainer"><span class="preview-placeholder">Pré-visualização dos arquivos carregados...</span></div>
     <div class="button-group">
@@ -80,7 +76,8 @@
         <h3>Bipar / Digitar Código para Baixa</h3>
         <p>Digite o código do produto e pressione <strong>Enter</strong> para dar baixa em uma unidade.</p>
         <input type="text" id="scanInput" placeholder="Aguardando código do produto...">
-        <p id="scanFeedback"></p> </div>
+        <p id="scanFeedback"></p>
+    </div>
     
     <table id="tabelaResultados">
         <thead>
@@ -95,9 +92,8 @@
 </div>
 
 <script>
-    const fileInput=document.getElementById("fileInput"),previewContainer=document.getElementById("previewContainer"),previewPlaceholder=document.querySelector(".preview-placeholder"),extractButton=document.getElementById("extractButton"),clearButton=document.getElementById("clearButton"),tabelaBody=document.querySelector("#tabelaResultados tbody"),statusEl=document.getElementById("status"),scanInput=document.getElementById("scanInput"),scanFeedback=document.getElementById("scanFeedback"); // Referência ao novo elemento
+    const fileInput=document.getElementById("fileInput"),previewContainer=document.getElementById("previewContainer"),previewPlaceholder=document.querySelector(".preview-placeholder"),extractButton=document.getElementById("extractButton"),clearButton=document.getElementById("clearButton"),tabelaBody=document.querySelector("#tabelaResultados tbody"),statusEl=document.getElementById("status"),scanInput=document.getElementById("scanInput"),scanFeedback=document.getElementById("scanFeedback");
     let arquivosParaProcessar=[];
-    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     
     function playAudio(soundName) {
         const audio = new Audio(`public/sounds/${soundName}.mp3`);
@@ -166,8 +162,6 @@
         if (!produtoEncontrado) {
             playAudio('error');
             flashInput(scanInput, 'input-error');
-            // A LINHA DO ALERT FOI REMOVIDA DAQUI
-            // E A LÓGICA ABAIXO FOI ADICIONADA
             scanFeedback.textContent = `Código "${searchCode}" não pertence a esta nota.`;
         }
 
@@ -176,7 +170,7 @@
     }
 
 
-    // --- FUNÇÕES DE PROCESSAMENTO DE DADOS (XML/PDF) ---
+    // --- FUNÇÕES DE PROCESSAMENTO DE DADOS (XML) ---
     function processarDadosXML(xmlDoc) {
         const produtosAgregados = {};
         const produtosXML = xmlDoc.querySelectorAll('det > prod');
@@ -204,25 +198,6 @@
         }
     }
 
-    async function processarPDF(file, fileIndex) {
-        statusEl.textContent = `(${fileIndex}/${arquivosParaProcessar.length}) 📄 Lendo PDF: ${file.name}...`;
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        for (let i = 1; i <= pdf.numPages; i++) {
-            statusEl.textContent = `(${fileIndex}/${arquivosParaProcessar.length}) 📄 Processando OCR na página ${i}/${pdf.numPages}...`;
-            const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 3.0 });
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            await page.render({ canvasContext: context, viewport: viewport }).promise;
-            const dataUrl = canvas.toDataURL("image/png");
-            const result = await Tesseract.recognize(dataUrl, "por", { logger: m => console.log(m) });
-            console.log(`Texto extraído da página ${i}:`, result.data.text);
-        }
-    }
-    
     async function processarXML(file, fileIndex) {
         statusEl.textContent = `(${fileIndex}/${arquivosParaProcessar.length}) 📊 Lendo XML: ${file.name}...`;
         return new Promise((resolve, reject) => {
@@ -255,21 +230,16 @@
 
     function adicionarArquivoParaFila(file) {
         if (!file) return;
-        const tiposAceitos = ['application/pdf', 'text/xml'];
-        if (!tiposAceitos.includes(file.type) && !file.name.toLowerCase().endsWith('.xml')) {
-            alert('Por favor, selecione apenas arquivos PDF ou XML.');
+        if (!file.name.toLowerCase().endsWith('.xml') && file.type !== 'text/xml') {
+            alert('Por favor, selecione apenas arquivos XML.');
             return;
         }
         arquivosParaProcessar.push(file);
         let previewElement = document.createElement('div');
         previewElement.title = file.name;
-        if (file.type === 'application/pdf') {
-            previewElement.textContent = '📄';
-            previewElement.className = 'pdf-icon';
-        } else {
-            previewElement.textContent = '📊';
-            previewElement.className = 'xml-icon';
-        }
+        previewElement.textContent = '📊';
+        previewElement.className = 'xml-icon';
+        
         previewContainer.appendChild(previewElement);
         if (previewPlaceholder) { previewPlaceholder.style.display = 'none'; }
         atualizarEstadoBotoes();
@@ -284,12 +254,7 @@
         extractButton.disabled = true;
         statusEl.textContent = "Iniciando processamento...";
         for (let i = 0; i < arquivosParaProcessar.length; i++) {
-            const file = arquivosParaProcessar[i];
-            if (file.type === "application/pdf") {
-                await processarPDF(file, i + 1);
-            } else if (file.type === "text/xml" || file.name.toLowerCase().endsWith('.xml')) {
-                await processarXML(file, i + 1);
-            }
+            await processarXML(arquivosParaProcessar[i], i + 1);
         }
         statusEl.textContent = `✅ Processamento concluído! Total de ${tabelaBody.rows.length} produtos únicos encontrados.`;
         atualizarEstadoBotoes();
