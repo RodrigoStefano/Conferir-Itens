@@ -45,27 +45,54 @@
         #scanInput { width: calc(100% - 24px); }
 
         /* --- CLASSES PARA FEEDBACK VISUAL --- */
-        .highlight-success {
-            background-color: #d4edda !important;
-        }
-        .row-removing {
-            background-color: #f8d7da !important;
-            opacity: 0;
-            transform: translateX(50px);
-            transition: all 0.5s ease-out;
-        }
+        .highlight-success { background-color: #d4edda !important; }
+        .row-removing { background-color: #f8d7da !important; opacity: 0; transform: translateX(50px); transition: all 0.5s ease-out; }
         .input-success { outline-color: #28a745 !important; }
         .input-error { outline-color: #dc3545 !important; }
 
         /* --- ESTILO PARA FEEDBACK DE ERRO NO INPUT --- */
-        #scanFeedback {
-            font-size: 0.9em;
-            font-weight: bold;
-            height: 1.1em;
-            margin-top: -10px;
-            margin-bottom: 10px;
-            color: #dc3545;
+        #scanFeedback { font-size: 0.9em; font-weight: bold; height: 1.1em; margin-top: -10px; margin-bottom: 10px; color: #dc3545; }
+
+        /* --- NOVOS ESTILOS PARA A MODAL --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none; /* Inicia oculta */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
         }
+        .modal-content {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            position: relative;
+        }
+        .modal-content h2 { font-size: 2.5em; margin-bottom: 15px; }
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 2em;
+            color: #aaa;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .modal-close:hover { color: #333; }
+        #closeModalButton {
+            background-color: #28a745;
+            color: white;
+            margin-top: 20px;
+        }
+        #closeModalButton:hover { background-color: #218838; }
 
     </style>
 </head>
@@ -107,8 +134,22 @@
     </table>
 </div>
 
+<div id="completionModal" class="modal-overlay">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h2>🎉 Conferência Finalizada!</h2>
+        <p>Todos os itens da nota foram conferidos com sucesso.</p>
+        <button id="closeModalButton">Fechar</button>
+    </div>
+</div>
+
 <script>
     const fileInput=document.getElementById("fileInput"),previewContainer=document.getElementById("previewContainer"),previewPlaceholder=document.querySelector(".preview-placeholder"),extractButton=document.getElementById("extractButton"),clearButton=document.getElementById("clearButton"),tabelaBody=document.querySelector("#tabelaResultados tbody"),statusEl=document.getElementById("status"),scanInput=document.getElementById("scanInput"),scanFeedback=document.getElementById("scanFeedback");
+    
+    // NOVAS CONSTANTES PARA A MODAL
+    const completionModal = document.getElementById('completionModal');
+    const closeModalButton = document.getElementById('closeModalButton');
+    const modalCloseSpan = document.querySelector('.modal-close');
     let arquivosParaProcessar=[];
     
     function playAudio(soundName) {
@@ -133,7 +174,7 @@
     }
 
     function processarBaixaDeItem() {
-        scanFeedback.textContent = ''; // Limpa a mensagem anterior a cada nova leitura
+        scanFeedback.textContent = '';
         const rawCode = scanInput.value.trim();
         if (rawCode === '') return;
 
@@ -167,7 +208,14 @@
 
                 if (currentQuantity <= 0) {
                     row.classList.add('row-removing');
-                    setTimeout(() => row.remove(), 500);
+                    setTimeout(() => {
+                        row.remove();
+                        // VERIFICA SE A TABELA FICOU VAZIA APÓS REMOVER O ITEM
+                        if (tabelaBody.rows.length === 0) {
+                            completionModal.style.display = 'flex';
+                            playAudio('success'); // Toca um som final de sucesso
+                        }
+                    }, 500);
                 } else {
                     quantityCell.textContent = currentQuantity;
                 }
@@ -251,13 +299,6 @@
             return;
         }
         arquivosParaProcessar.push(file);
-        let previewElement = document.createElement('div');
-        previewElement.title = file.name;
-        previewElement.textContent = '📊';
-        previewElement.className = 'xml-icon';
-        
-        previewContainer.appendChild(previewElement);
-        if (previewPlaceholder) { previewPlaceholder.style.display = 'none'; }
         atualizarEstadoBotoes();
     }
     
@@ -280,15 +321,26 @@
         arquivosParaProcessar = [];
         limparResultados();
         previewContainer.innerHTML = '';
-        if (previewPlaceholder) {
-            previewContainer.appendChild(previewPlaceholder);
-            previewPlaceholder.style.display = 'block';
-        }
         fileInput.value = "";
         statusEl.textContent = "Status: Aguardando arquivos para processar.";
         scanFeedback.textContent = "";
+        completionModal.style.display = 'none'; // Garante que a modal seja fechada
         atualizarEstadoBotoes();
     }
+    
+    // --- NOVOS EVENT LISTENERS PARA A MODAL ---
+    function fecharModal() {
+        completionModal.style.display = 'none';
+        limparTudo();
+    }
+
+    closeModalButton.addEventListener('click', fecharModal);
+    modalCloseSpan.addEventListener('click', fecharModal);
+    completionModal.addEventListener('click', function(event) {
+        if (event.target === completionModal) { // Fecha apenas se clicar no fundo
+            fecharModal();
+        }
+    });
 
     fileInput.addEventListener("change", event => { for (const file of event.target.files) { adicionarArquivoParaFila(file); } });
     extractButton.addEventListener('click', iniciarProcessamento);
